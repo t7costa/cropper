@@ -18,6 +18,7 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.PathEffect;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.media.ExifInterface;
@@ -33,6 +34,7 @@ import android.widget.ImageView;
 import com.edmodo.cropper.cropwindow.CropOverlayView;
 import com.edmodo.cropper.cropwindow.edge.Edge;
 import com.edmodo.cropper.util.ImageViewUtil;
+import com.edmodo.cropper.util.PathHelper;
 
 /**
  * Custom view that provides cropping capabilities to an image.
@@ -234,11 +236,16 @@ public class CropImageView extends FrameLayout {
 
     /**
      * Returns the integer of the imageResource
-     * 
-     * @param int the image resource id
      */
     public int getImageResource() {
         return mImageResource;
+    }
+
+    /**
+     * Returns the bitmap content of the CropImageView
+     */
+    public Bitmap getImageBitmap() {
+        return mBitmap;
     }
 
     /**
@@ -465,6 +472,24 @@ public class CropImageView extends FrameLayout {
         mDegreesRotated = mDegreesRotated % 360;
     }
 
+    /**
+     * Sets a custom path handler for drawing the crop selection area
+     *
+     * @param pathHelper The path helper that determines the path to draw
+     */
+    public void setPathHelper(PathHelper pathHelper) {
+        mCropOverlayView.setPathHelper(pathHelper);
+    }
+
+    /**
+     * Sets a custom path effect for the crop selection area
+     *
+     * @param pathEffect The path effect to apply to the crop path
+     */
+    public void setPathEffect(PathEffect pathEffect) {
+        mCropOverlayView.setPathEffect(pathEffect);
+    }
+
     // Private Methods /////////////////////////////////////////////////////////
 
     private void init(Context context) {
@@ -505,5 +530,4 @@ public class CropImageView extends FrameLayout {
 
         return spec;
     }
-
 }

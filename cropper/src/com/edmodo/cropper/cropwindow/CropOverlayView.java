@@ -14,8 +14,12 @@
 package com.edmodo.cropper.cropwindow;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PathEffect;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -30,6 +34,7 @@ import com.edmodo.cropper.cropwindow.handle.Handle;
 import com.edmodo.cropper.util.AspectRatioUtil;
 import com.edmodo.cropper.util.HandleUtil;
 import com.edmodo.cropper.util.PaintUtil;
+import com.edmodo.cropper.util.PathHelper;
 
 /**
  * A custom View representing the crop window and the shaded background outside
@@ -55,6 +60,16 @@ public class CropOverlayView extends View {
     private static final int GUIDELINES_OFF = 0;
     private static final int GUIDELINES_ON_TOUCH = 1;
     private static final int GUIDELINES_ON = 2;
+
+    // Default rectangular PathHelper
+    private static final PathHelper DEFAULT_PATH_HELPER = new PathHelper() {
+        @Override
+        public void updatePath(Path path, float left, float top, float right, float bottom) {
+            path.reset();
+            path.addRect(left, top, right, bottom, Path.Direction.CW);
+            path.close();
+        }
+    };
 
     // Member Variables ////////////////////////////////////////////////////////
 
@@ -114,6 +129,12 @@ public class CropOverlayView extends View {
     private float mCornerOffset;
     private float mCornerLength;
 
+    // Instance variables for custom overlay path
+    private Bitmap mBitmap;
+    private Paint mEraserPaint;
+    private Path mPath;
+    private PathHelper mPathHelper;
+
     // Constructors ////////////////////////////////////////////////////////////
 
     public CropOverlayView(Context context) {
@@ -134,15 +155,30 @@ public class CropOverlayView extends View {
         // Initialize the crop window here because we need the size of the view
         // to have been determined.
         initCropWindow(mBitmapRect);
+
+        if (mBitmap != null) {
+            mBitmap.recycle();
+        }
+        mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-
         super.onDraw(canvas);
 
         // Draw translucent background for the cropped area.
-        drawBackground(canvas, mBitmapRect);
+        mBitmap.eraseColor(Color.TRANSPARENT);
+        Canvas bitmapCanvas = new Canvas(mBitmap);
+        bitmapCanvas.drawPaint(mBackgroundPaint);
+        mPathHelper.updatePath(
+                mPath,
+                Edge.LEFT.getCoordinate(),
+                Edge.TOP.getCoordinate(),
+                Edge.RIGHT.getCoordinate(),
+                Edge.BOTTOM.getCoordinate());
+
+        bitmapCanvas.drawPath(mPath, mEraserPaint);
+        canvas.drawBitmap(mBitmap, 0, 0, null);
 
         if (showGuidelines()) {
             // Determines whether guidelines should be drawn or not
@@ -158,12 +194,7 @@ public class CropOverlayView extends View {
         }
 
         // Draws the main crop window border.
-        canvas.drawRect(Edge.LEFT.getCoordinate(),
-                        Edge.TOP.getCoordinate(),
-                        Edge.RIGHT.getCoordinate(),
-                        Edge.BOTTOM.getCoordinate(),
-                        mBorderPaint);
-
+        canvas.drawPath(mPath, mBorderPaint);
         drawCorners(canvas);
     }
 
@@ -212,8 +243,6 @@ public class CropOverlayView extends View {
 
     /**
      * Resets the crop overlay view.
-     * 
-     * @param bitmap the Bitmap to set
      */
     public void resetCropOverlayView() {
 
@@ -221,6 +250,30 @@ public class CropOverlayView extends View {
             initCropWindow(mBitmapRect);
             invalidate();
         }
+    }
+
+    /**
+     * Sets a custom path handler for drawing the crop selection area
+     *
+     * @param pathHelper The path helper that determines the path to draw
+     */
+    public void setPathHelper(PathHelper pathHelper) {
+        if (pathHelper == null) {
+            pathHelper = DEFAULT_PATH_HELPER;
+        }
+        mPathHelper = pathHelper;
+        invalidate();
+    }
+
+    /**
+     * Sets a custom path effect for the crop selection area
+     *
+     * @param pathEffect The path effect to apply to the crop path
+     */
+    public void setPathEffect(PathEffect pathEffect) {
+        mBorderPaint.setPathEffect(pathEffect);
+        mEraserPaint.setPathEffect(pathEffect);
+        invalidate();
     }
 
     /**
@@ -359,6 +412,7 @@ public class CropOverlayView extends View {
         mGuidelinePaint = PaintUtil.newGuidelinePaint();
         mBackgroundPaint = PaintUtil.newBackgroundPaint(context);
         mCornerPaint = PaintUtil.newCornerPaint(context);
+        mEraserPaint = PaintUtil.newEraserPaint();
 
         // Sets the values for the corner sizes
         mCornerOffset = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
@@ -373,6 +427,10 @@ public class CropOverlayView extends View {
 
         // Sets guidelines to default until specified otherwise
         mGuidelines = CropImageView.DEFAULT_GUIDELINES;
+
+        // Sets the path for drawing the crop preview
+        mPath = new Path();
+        mPathHelper = DEFAULT_PATH_HELPER;
     }
 
     /**
@@ -385,8 +443,9 @@ public class CropOverlayView extends View {
 
         // Tells the attribute functions the crop window has already been
         // initialized
-        if (initializedCropWindow == false)
-            initializedCropWindow = true;
+        initializedCropWindow = true;
+
+        if (bitmapRect.isEmpty()) return;
 
         if (mFixAspectRatio) {
 
@@ -488,34 +547,6 @@ public class CropOverlayView extends View {
         canvas.drawLine(left, y1, right, y1, mGuidelinePaint);
         final float y2 = bottom - oneThirdCropHeight;
         canvas.drawLine(left, y2, right, y2, mGuidelinePaint);
-    }
-
-    private void drawBackground(Canvas canvas, Rect bitmapRect) {
-
-        final float left = Edge.LEFT.getCoordinate();
-        final float top = Edge.TOP.getCoordinate();
-        final float right = Edge.RIGHT.getCoordinate();
-        final float bottom = Edge.BOTTOM.getCoordinate();
-
-        /*-
-          -------------------------------------
-          |                top                |
-          -------------------------------------
-          |      |                    |       |
-          |      |                    |       |
-          | left |                    | right |
-          |      |                    |       |
-          |      |                    |       |
-          -------------------------------------
-          |              bottom               |
-          -------------------------------------
-         */
-
-        // Draw "top", "bottom", "left", then "right" quadrants.
-        canvas.drawRect(bitmapRect.left, bitmapRect.top, bitmapRect.right, top, mBackgroundPaint);
-        canvas.drawRect(bitmapRect.left, bottom, bitmapRect.right, bitmapRect.bottom, mBackgroundPaint);
-        canvas.drawRect(bitmapRect.left, top, left, bottom, mBackgroundPaint);
-        canvas.drawRect(right, top, bitmapRect.right, bottom, mBackgroundPaint);
     }
 
     private void drawCorners(Canvas canvas) {

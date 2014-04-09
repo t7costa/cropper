@@ -10,6 +10,7 @@
     <string name="aspectRatioY">\u002010</string>
     <string name="aspectRatioYHeader">aspectRatioY =</string>
     <string name="showGuidelines">showGuidelines = </string>
+    <string name="customPath">customPath = </string>
     <string name="crop">Crop</string>
     <string name="rotate">Rotate</string>
     <string name="croppedImageDesc">The cropped image.</string>
@@ -18,6 +19,12 @@
         <item>Off</item>
         <item>On Touch</item>
         <item>On</item>
+    </string-array>
+
+    <string-array name="customPathArray">
+        <item>Rectangle</item>
+        <item>Dashed Rectangle</item>
+        <item>Oval</item>
     </string-array>
 
 </resources>

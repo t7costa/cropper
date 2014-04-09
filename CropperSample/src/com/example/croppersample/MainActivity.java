@@ -3,6 +3,10 @@ package com.example.croppersample;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.graphics.DashPathEffect;
+import android.graphics.Path;
+import android.graphics.PathEffect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Menu;
@@ -22,6 +26,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.edmodo.cropper.CropImageView;
+import com.edmodo.cropper.util.PathHelper;
 
 public class MainActivity extends Activity {
 
@@ -31,6 +36,16 @@ public class MainActivity extends Activity {
     private static final String ASPECT_RATIO_X = "ASPECT_RATIO_X";
     private static final String ASPECT_RATIO_Y = "ASPECT_RATIO_Y";
     private static final int ON_TOUCH = 1;
+
+    private static final PathEffect DASH_PATH_EFFECT = new DashPathEffect(new float[] { 10, 5 }, 1);
+    private static final PathHelper OVAL_PATH_HELPER = new PathHelper() {
+        @Override
+        public void updatePath(Path path, float left, float top, float right, float bottom) {
+            path.reset();
+            path.addOval(new RectF(left, top, right, bottom), Path.Direction.CW);
+            path.close();
+        }
+    };
 
     // Instance variables
     private int mAspectRatioX = DEFAULT_ASPECT_RATIO_VALUES;
@@ -70,7 +85,8 @@ public class MainActivity extends Activity {
         final SeekBar aspectRatioXSeek = (SeekBar) findViewById(R.id.aspectRatioXSeek);
         final SeekBar aspectRatioYSeek = (SeekBar) findViewById(R.id.aspectRatioYSeek);
         final ToggleButton fixedAspectRatioToggle = (ToggleButton) findViewById(R.id.fixedAspectRatioToggle);
-        Spinner showGuidelinesSpin = (Spinner) findViewById(R.id.showGuidelinesSpin);
+        final Spinner showGuidelinesSpin = (Spinner) findViewById(R.id.showGuidelinesSpin);
+        final Spinner customPathSpin = (Spinner) findViewById(R.id.customPathSpin);
         
         // Sets sliders to be disabled until fixedAspectRatio is set
         aspectRatioXSeek.setEnabled(false);
@@ -156,10 +172,34 @@ public class MainActivity extends Activity {
         });
 
 
-        // Sets up the Spinner
+        // Sets up the guidelines Spinner
         showGuidelinesSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 cropImageView.setGuidelines(i);
+            }
+
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                return;
+            }
+        });
+
+        // Sets up the customPath Spinner
+        customPathSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                switch (i) {
+                    case 0:
+                        cropImageView.setPathHelper(null);
+                        cropImageView.setPathEffect(null);
+                        break;
+                    case 1:
+                        cropImageView.setPathHelper(null);
+                        cropImageView.setPathEffect(DASH_PATH_EFFECT);
+                        break;
+                    case 2:
+                        cropImageView.setPathHelper(OVAL_PATH_HELPER);
+                        cropImageView.setPathEffect(null);
+                        break;
+                }
             }
 
             public void onNothingSelected(AdapterView<?> adapterView) {

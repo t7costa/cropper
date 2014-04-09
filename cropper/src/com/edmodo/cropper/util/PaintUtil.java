@@ -16,6 +16,8 @@ package com.edmodo.cropper.util;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.util.TypedValue;
 
 /**
@@ -48,6 +50,7 @@ public class PaintUtil {
                                                                 context.getResources().getDisplayMetrics());
 
         final Paint borderPaint = new Paint();
+        borderPaint.setAntiAlias(true);
         borderPaint.setColor(Color.parseColor(SEMI_TRANSPARENT));
         borderPaint.setStrokeWidth(lineThicknessPx);
         borderPaint.setStyle(Paint.Style.STROKE);
@@ -106,6 +109,19 @@ public class PaintUtil {
     }
 
     /**
+     * Creates the Paint object for erasing the background paint
+     * @return the new Paint object
+     */
+    public static Paint newEraserPaint() {
+
+        final Paint eraserPaint = new Paint();
+        eraserPaint.setAntiAlias(true);
+        eraserPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+
+        return eraserPaint;
+    }
+
+    /**
      * Returns the value of the corner thickness
      * 
      * @return Float equivalent to the corner thickness
@@ -122,5 +138,4 @@ public class PaintUtil {
     public static float getLineThickness() {
         return DEFAULT_LINE_THICKNESS_DP;
     }
-
 }
